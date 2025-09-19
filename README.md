@@ -14,7 +14,7 @@ Splendor Blockchain V4 is a production-ready mainnet that combines the best of E
 ### Key Features
 
 - **🌍 WORLD FIRST: Native x402 Payments**: Built-in micropayments protocol - add payments to any API in 1 line of code
-- **⚡ Ultra High Performance**: 1 second block times with 952,380 TPS capacity
+- **⚡ Ultra High Performance**: 1 second block times with 10,000+ TPS capacity
 - **🔧 Advanced Parallel Processing**: 49x speedup with multi-core optimization
 - **🔒 Enterprise Security**: Congress consensus with Byzantine fault tolerance
 - **💰 Zero Gas Fees**: Users pay $0 gas for x402 micropayments
@@ -134,12 +134,14 @@ app.use('/api', splendorX402Express({
 
 ## 🏗️ Architecture
 
-### Congress Consensus
-Splendor uses an enhanced Proof of Authority consensus called "Congress" that provides:
-- **Fast Finality**: Transactions confirmed in 1 second
-- **High Security**: Byzantine fault tolerance with validator rotation
-- **Energy Efficient**: No wasteful mining, minimal environmental impact
-- **Ultra-Scalable**: Supports 952,380+ transactions per second with 20B gas limit
+### Congress Consensus (Delegated Proof of Stake Authority)
+Splendor uses **Congress consensus** - a **Delegated Proof of Stake Authority (DPoSA)** system that provides:
+- **Fast Finality**: Transactions confirmed in 1 second with deterministic block production
+- **High Security**: Byzantine fault tolerance with rotating validator authorities
+- **Energy Efficient**: No GPU mining or computational puzzles - pure CPU validation
+- **Authority-Based**: Pre-selected validators take turns producing blocks (not competitive mining)
+- **Ultra-Scalable**: Supports 10,000+ transactions per second with realistic hardware
+- **Deterministic**: Block production follows a predictable schedule with 1-second intervals
 
 ### Validator Tiers
 | Tier | Stake Required | Benefits |
@@ -248,11 +250,11 @@ npx hardhat run scripts/deploy.js --network splendor
 
 ### Performance Metrics
 - **Block Time**: 1 second average
-- **Current TPS**: ~30k-50k TPS (8-core validators)
-- **Theoretical Maximum**: 14.28M TPS (300B gas limit ceiling)
-- **GPU Acceleration Target**: 200k-300k TPS (Q2 2025)
-- **Long-term Goal**: 1M+ TPS with advanced hardware
-- **Parallel Processing**: 49x speedup with multi-core optimization
+- **Current TPS**: ~5,000-10,000 TPS (typical validators)
+- **Realistic Maximum**: ~15,000 TPS (high-end hardware)
+- **CPU Optimization Target**: 20,000-30,000 TPS with advanced multi-core processing
+- **Long-term Goal**: 50,000+ TPS with datacenter-class CPU infrastructure
+- **Parallel Processing**: Multi-core optimization for transaction processing
 - **Finality**: Instant (single block confirmation)
 - **Uptime**: 99.9%+ network availability
 
@@ -276,17 +278,18 @@ Theoretical Ceiling: 20,000,000,000 ÷ 21,000 ≈ 952,380 TPS
 **Real-World Performance:**
 The theoretical 952,380 TPS assumes infinite CPU, disk, and networking resources. Actual throughput is limited by hardware bottlenecks:
 
-- **8-core validator**: ~30,000-50,000 TPS
-- **16-core validator**: ~80,000-100,000 TPS  
-- **64-core validator**: ~250,000-400,000 TPS
-- **128-core validator cluster**: 500,000+ TPS (with optimized infrastructure)
+- **4-core validator**: ~2,000-5,000 TPS
+- **8-core validator**: ~5,000-10,000 TPS
+- **16-core validator**: ~10,000-15,000 TPS  
+- **32-core validator**: ~15,000-25,000 TPS
+- **64-core validator cluster**: ~25,000-50,000 TPS (with optimized infrastructure)
 
-**Hardware Requirements for High TPS:**
-- **CPU**: 64-128 cores (AMD EPYC or Intel Xeon)
-- **RAM**: 256-512 GB
-- **Storage**: Ultra-fast NVMe SSDs (7+ GB/s write speed)
-- **Network**: 25-100 Gbps networking
-- **Infrastructure**: Datacenter-class nodes with optimized parallel processing
+**Hardware Requirements for Realistic TPS:**
+- **CPU**: 8-32 cores (modern multi-core processors)
+- **RAM**: 16-64 GB
+- **Storage**: Fast NVMe SSDs (1+ GB/s write speed)
+- **Network**: 1-10 Gbps networking
+- **Infrastructure**: Standard server-class hardware with multi-core optimization
 
 #### Transaction Costs (SPLD = $0.38)
 ```javascript
@@ -356,14 +359,14 @@ Contract Creation: 1,886,885 gas × 1 gwei = 0.001887 SPLD = $0.000717
 - ✅ Global Expansion
 
 ### Q4 2025 (Current)
-- 🔄 **GPU Acceleration Initiative** - All validators switch to GPU-accelerated signature verification (4-6x TPS boost)
+- 🔄 **CPU-Only Optimization** - Enhanced CPU-based validation with no GPU mining requirements
 - 🔄 Interoperability Protocols
 - 🔄 Advanced Privacy Features
 - 🔄 Quantum-Resistant Security
 - 🔄 Ecosystem Maturation
 
 ### 2026 Preview
-- 📋 Million TPS Achievement
+- 📋 50,000+ TPS Achievement with Advanced Hardware
 - 📋 Advanced Sharding Implementation
 - 📋 AI-Powered Development Suite
 - 📋 Enterprise-Grade Features
