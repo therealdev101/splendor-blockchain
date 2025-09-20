@@ -276,9 +276,12 @@ task7(){
 
   cd ../
 
+  # Create the chaindata directory if it doesn't exist
+  mkdir -p ./chaindata
+
   i=1
   while [[ $i -le $totalNodes ]]; do
-    mkdir ./chaindata/node$i
+    mkdir -p ./chaindata/node$i
     ((i += 1))
   done
 
