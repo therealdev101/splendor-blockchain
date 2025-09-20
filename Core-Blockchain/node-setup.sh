@@ -162,12 +162,11 @@ task6_x402(){
       log_wait "Adding x402 configuration to .env"
       cat >> .env << 'EOF'
 
-# Native x402 Payments Protocol Configuration
+# Native x402 Payments Protocol Configuration (amounts in SPLD)
 X402_ENABLED=true
 X402_NETWORK=splendor
-X402_CHAIN_ID=6546
-X402_DEFAULT_PRICE=0.001
-X402_MIN_PAYMENT=0.001
+X402_CHAIN_ID=2691
+X402_MIN_PAYMENT=0.0001
 X402_MAX_PAYMENT=1000.0
 X402_SETTLEMENT_TIMEOUT=300
 X402_ENABLE_LOGGING=true

@@ -76,8 +76,8 @@ func NewX402ValidatorRewards(eth *Ethereum) *X402ValidatorRewards {
 		validatorShares:      make(map[common.Address]*big.Int),
 		paymentHistory:       make([]X402Payment, 0),
 		validatorPerformance: make(map[common.Address]*ValidatorPerformance),
-		validatorFeeShare:    0.05, // 5% of x402 payments go to validators
-		distributionMode:     "performance", // AI-optimized performance-based distribution
+                validatorFeeShare:    0.0, // 0% of x402 payments are reserved for validators by default
+                distributionMode:     "performance", // AI-optimized performance-based distribution
 	}
 }
 
@@ -86,7 +86,7 @@ func (r *X402ValidatorRewards) ProcessX402Payment(payment X402Payment) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	
-	// Calculate validator fee (10% of payment amount)
+        // Calculate validator fee based on the currently configured share
 	validatorFee := new(big.Int).Mul(payment.Amount, big.NewInt(int64(r.validatorFeeShare*100)))
 	validatorFee.Div(validatorFee, big.NewInt(100))
 	

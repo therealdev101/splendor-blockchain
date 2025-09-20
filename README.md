@@ -74,10 +74,13 @@ Splendor is the **only blockchain** with x402 payments built into the consensus 
 ```javascript
 // Add payments to your API in 1 line
 app.use('/api', splendorX402Express({
-  payTo: '0xYourWallet',  // You get 90% of payments
-  pricing: { '/api/service': '0.001' }  // $0.001 per request
+  payTo: '0xYourWallet',  // Micropayments settle straight to you
+  pricing: { '/api/service': '0.0001' }  // You set the price (>=0.0001 SPLD when charging; validator share opt-in)
 }));
 ```
+
+> ℹ️ Splendor does **not** set a default price. You decide what each endpoint costs—as long as you charge at least 0.0001 SPLD
+> when monetizing an API call.
 
 ### ⚡ Revolutionary Benefits
 
@@ -86,7 +89,9 @@ app.use('/api', splendorX402Express({
 | **Settlement** | **<100ms** | 2-15 seconds | **150x faster** |
 | **User Fees** | **$0 gas** | $0.01-$50 gas | **100% savings** |
 | **Integration** | **1 line** | 50+ lines | **50x simpler** |
-| **Revenue** | **90% to you** | Variable | **Guaranteed** |
+| **Revenue** | **Configurable (100% to you by default)** | Variable | **Guaranteed** |
+
+By default Splendor takes **0% validator fees** and supports a **0.0001 SPLD minimum payment**, so every request settles entirely to your wallet unless you opt in to revenue sharing.
 
 ### 🚀 Quick x402 Setup
 

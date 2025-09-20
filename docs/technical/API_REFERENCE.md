@@ -156,6 +156,63 @@ curl -X POST -H "Content-Type: application/json" \
      http://localhost:8545
 ```
 
+### Native x402 Methods
+
+Splendor's micropayment protocol is exposed via the `x402` JSON-RPC namespace.
+
+#### Method Summary
+
+| Method | Parameters | Result | Description |
+|--------|------------|--------|-------------|
+| `x402_supported()` | _none_ | `SupportedResponse` | Lists supported payment schemes (`exact`) and networks (`splendor`). |
+| `x402_verify(requirements, payload)` | `PaymentRequirements`, `PaymentPayload` | `VerificationResponse` | Validates signatures, balances, amount, and nonce usage without settling funds. |
+| `x402_settle(requirements, payload)` | `PaymentRequirements`, `PaymentPayload` | `SettlementResponse` | Verifies and submits the typed `0x50` x402 settlement transaction for inclusion. |
+| `x402_getValidatorX402Revenue(address)` | `0x` address | `hexutil.Big` | Returns the tracked validator reward share for the supplied validator address. |
+| `x402_getX402RevenueStats()` | _none_ | `X402RevenueStats` | Aggregated volume, top validator, totals, and daily figures recorded by `X402ValidatorRewards`. |
+| `x402_getTopPerformingValidators(limit)` | `int` | `ValidatorRanking[]` | Lists validators ordered by AI-assisted performance metrics. |
+| `x402_setValidatorFeeShare(percentage)` | `float64` | `null` | Updates the percentage of each payment tracked for validators (default 0%; opt-in). |
+| `x402_setDistributionMode(mode)` | `string` | `null` | Switches validator reward distribution (`performance`, `equal`, `proportional`). |
+
+#### PaymentRequirements Structure
+
+```json
+{
+  "scheme": "exact",
+  "network": "splendor",
+  "maxAmountRequired": "0x38d7ea4c68000",
+  "resource": "/api/premium",
+  "description": "Premium API access",
+  "mimeType": "application/json",
+  "payTo": "0xYourWalletAddress",
+  "maxTimeoutSeconds": 300,
+  "asset": "0x0000000000000000000000000000000000000000"
+}
+```
+
+> ℹ️ Choose the `maxAmountRequired` that matches your business model. Splendor enforces only the **0.0001 SPLD minimum** for
+> paid endpoints and does **not** define a network-wide default price.
+
+#### PaymentPayload Structure
+
+```json
+{
+  "x402Version": 1,
+  "scheme": "exact",
+  "network": "splendor",
+  "payload": {
+    "from": "0xClientAddress",
+    "to": "0xYourWalletAddress",
+    "value": "0x38d7ea4c68000",
+    "validAfter": 1714761600,
+    "validBefore": 1714762200,
+    "nonce": "0x4c7d1ed414474e4033ac29ccb8653d9a00000000000000000000000000000001",
+    "signature": "0x…65-byte signature"
+  }
+}
+```
+
+> **Tip:** Middleware clients serialize the `payment` object to Base64 and send it as the `X-Payment` header. The server should echo the settlement result in the `X-Payment-Response` header for clients to consume.
+
 ## System Contracts
 
 Splendor includes several pre-deployed system contracts for network governance and validation:

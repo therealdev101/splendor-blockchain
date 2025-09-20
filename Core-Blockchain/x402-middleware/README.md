@@ -9,22 +9,33 @@ The world's first **native x402 implementation** built directly into a blockchai
 - **No Gas Fees**: Users don't pay gas for micropayments
 - **HTTP Native**: Standard x402 protocol over HTTP
 - **Framework Support**: Express.js, Fastify, and more
-- **$0.001 Minimum**: Smallest payments in crypto
-- **💎 Validator Revenue**: 5% of all payments go to validators
-- **🏦 Protocol Revenue**: 5% of all payments go to core blockchain
+- **0.0001 SPLD Minimum**: Smallest payments in crypto (and zero network fees)
+- **Developer-Defined Pricing**: You set endpoint prices (Splendor only enforces the 0.0001 SPLD minimum when charging)
+- **💎 Validator Rewards**: Configurable share tracked by the native rewards module (0% default, opt-in)
+- **🏦 Protocol Treasury**: Optional allocation via `X402_TREASURY_ADDRESS`
 
 ## 💰 Revenue Model
 
-### **Automatic Revenue Split (Per Payment)**
+### Settlement & Native Rewards
 
-```
-User Payment: $0.001 SPLD
-├── API Provider: $0.0009 SPLD (90%) ← YOU (THE DEVELOPER)
-├── Validators: $0.00005 SPLD (5%) ← NETWORK VALIDATORS
-└── Core Blockchain: $0.00005 SPLD (5%) ← PROTOCOL FEE
+- **Settlement:** 100% of the payment value is credited to your `payTo` wallet the moment `x402_settle` succeeds.
+- **Validator rewards:** A configurable share (default **0%**) is tracked by the `X402ValidatorRewards` service only if you opt in.
+- **Protocol treasury:** Disabled unless you set `X402_TREASURY_ADDRESS`, allowing you to opt in to protocol funding when ready.
+
+```text
+Example payment: 0.0001 SPLD
+├── Settlement: 0.0001 SPLD hits your wallet instantly
+├── Validator share (tracked): 0.0000 SPLD (0% default — configure if desired)
+└── Protocol share (tracked): 0.0000 SPLD (disabled by default)
+
+Network fees: $0.00 (no gas, no transaction fees)
 ```
 
-**You keep 90% of all payments to your API!**
+**Key takeaways**
+
+- Keep the full settlement by default; opt-in tracking for validator rewards only when you enable it.
+- Adjust validator share at runtime with `x402_setValidatorFeeShare`.
+- Treasury support is opt-in and environment driven.
 
 ## 📦 Installation
 
@@ -47,30 +58,30 @@ const app = express();
 
 // Add x402 payments to your API in 1 line
 app.use('/api', splendorX402Express({
-  payTo: '0xYourWalletAddress',        // You get 90% of payments
+  payTo: '0xYourWalletAddress',        // Payments settle directly to you
   rpcUrl: 'http://splendor-rpc:80',    // Splendor RPC endpoint
   pricing: {
-    '/api/weather': '0.001',           // $0.001 per weather request
-    '/api/premium': '0.01',            // $0.01 for premium data
-    '/api/analytics': '0.05',          // $0.05 for analytics
+    '/api/weather': '0.0001',          // 0.0001 SPLD per weather request
+    '/api/premium': '0.01',            // 0.01 SPLD for premium data
+    '/api/analytics': '0.05',          // 0.05 SPLD for analytics
     '/api/free': '0'                   // Free endpoint
   }
 }));
 
 // These endpoints now require payment
 app.get('/api/weather', (req, res) => {
-  res.json({ 
+  res.json({
     weather: 'Sunny, 75°F',
     payment: req.x402,  // Payment details
-    revenue: 'You earned $0.0009 from this request!'
+    settlement: 'You received 0.0001 SPLD from this request (validator rewards tracked only if enabled)'
   });
 });
 
 app.get('/api/premium', (req, res) => {
-  res.json({ 
+  res.json({
     data: 'Premium content here',
     payment: req.x402,
-    revenue: 'You earned $0.009 from this request!'
+    settlement: 'You received the full SPLD settlement from this request (validator rewards tracked only if enabled)!'
   });
 });
 
@@ -88,15 +99,15 @@ fastify.register(splendorX402Fastify, {
   payTo: '0xYourWalletAddress',
   rpcUrl: 'http://splendor-rpc:80',
   pricing: {
-    '/api/premium': '0.001'
+    '/api/premium': '0.0001'
   }
 });
 
 fastify.get('/api/premium', async (request, reply) => {
-  return { 
+  return {
     message: 'Premium content!',
     payment: request.x402,
-    revenue: 'You earned 90% of this payment!'
+    settlement: 'You received the full SPLD settlement (validator rewards tracked only if enabled)!'
   };
 });
 
@@ -115,9 +126,9 @@ fastify.listen(3000);
 │ 4. Send Payment │───▶│ 5. Verify & Settle──▶│ 6. Instant TX   │
 │ 5. Get Content  │◀───│ 6. Return Content│◀───│ 7. Revenue Split│
 └─────────────────┘    └──────────────────┘    └─────────────────┘
-                                                │ 90% → You       │
-                                                │ 5% → Validators │
-                                                │ 5% → Protocol   │
+                                                │ Settlement → You│
+                                                │ Rewards tracked │
+                                                │ (configurable)  │
                                                 └─────────────────┘
 ```
 
@@ -135,7 +146,7 @@ curl http://localhost:3000/api/premium
   "accepts": [{
     "scheme": "exact",
     "network": "splendor",
-    "maxAmountRequired": "0x8ac7230489e80000",
+    "maxAmountRequired": "0x38d7ea4c68000",
     "resource": "/api/premium",
     "payTo": "0xYourWalletAddress",
     "asset": "0x0000000000000000000000000000000000000000"
@@ -153,7 +164,7 @@ const payment = {
   payload: {
     from: "0xClientAddress",
     to: "0xYourWalletAddress", 
-    value: "0x8ac7230489e80000", // 0.001 SPLD in wei
+    value: "0x38d7ea4c68000", // 0.0001 SPLD in wei
     validAfter: Math.floor(Date.now() / 1000),
     validBefore: Math.floor(Date.now() / 1000) + 3600,
     nonce: "0x" + crypto.randomBytes(32).toString('hex'),
@@ -174,7 +185,7 @@ curl -H "X-Payment: $(echo $PAYMENT | base64)" \
   "message": "Premium content!",
   "payment": {
     "paid": true,
-    "amount": "0.001",
+    "amount": "0.0001",
     "txHash": "0x...",
     "payer": "0xClientAddress"
   }
@@ -182,32 +193,35 @@ curl -H "X-Payment: $(echo $PAYMENT | base64)" \
 ```
 
 **What happens behind the scenes:**
-- ✅ **You get**: $0.0009 (90%)
-- ✅ **Validator gets**: $0.00005 (5%)
-- ✅ **Protocol gets**: $0.00005 (5%)
+- ✅ **You receive**: 0.0001 SPLD (full settlement)
+- ✅ **Validator share tracked**: 0.0000 SPLD (0% default — set a share if you want)
+- ✅ **Protocol share tracked**: 0.0000 SPLD (disabled unless treasury set)
 
 ## ⚙️ Configuration Options
 
 ```javascript
 const middleware = splendorX402Express({
   // Required
-  payTo: '0xYourWalletAddress',        // Where YOUR 90% goes
+  payTo: '0xYourWalletAddress',        // Where your settlement goes
   
   // Optional
   rpcUrl: 'http://localhost:80',       // Splendor RPC endpoint
   network: 'splendor',                 // Network name
-  chainId: 6546,                       // Splendor chain ID
-  defaultPrice: '0.001',               // Default price in USD
+  chainId: 2691,                       // Splendor chain ID
+  defaultPrice: '0.005',               // Optional fallback you configure (example only)
   
   // Pricing rules
   pricing: {
     '/api/free': '0',                  // Free endpoint
-    '/api/premium': '0.001',           // $0.001 per request
-    '/api/data/*': '0.01',             // $0.01 for wildcard paths
-    '/api/analytics': '0.05'           // $0.05 for analytics
+    '/api/premium': '0.0001',          // Developer-chosen price at the network minimum
+    '/api/data/*': '0.01',             // 0.01 SPLD for wildcard paths
+    '/api/analytics': '0.05'           // 0.05 SPLD for analytics
   }
 });
 ```
+
+> ⚠️ If a request hits a path without a pricing rule and you haven't provided `defaultPrice`, the middleware returns `500
+> x402 price not configured` so you can explicitly decide how that endpoint should be billed.
 
 ## 🧪 Testing
 
@@ -276,7 +290,7 @@ async function paidRequest(url, payment) {
 }
 
 // Usage
-const payment = createPayment(userAddress, apiProviderAddress, "0.001");
+const payment = createPayment(userAddress, apiProviderAddress, "0.0001");
 const result = await paidRequest('http://api.example.com/premium', payment);
 ```
 
@@ -316,7 +330,7 @@ def paid_request(url, payment):
     return response.json()
 
 # Usage
-payment = create_payment(user_address, api_provider_address, "0.001")
+payment = create_payment(user_address, api_provider_address, "0.0001")
 result = paid_request('http://api.example.com/premium', payment)
 ```
 
@@ -325,23 +339,23 @@ result = paid_request('http://api.example.com/premium', payment)
 | Feature | **Splendor x402** | Standard x402 | Credit Cards |
 |---------|------------------|---------------|--------------|
 | **Settlement** | **Instant** | 2+ seconds | 2-3 days |
-| **Minimum** | **$0.001** | $0.001 | $0.50+ |
+| **Minimum** | **0.0001 SPLD (~$0.000038)** | $0.001 | $0.50+ |
 | **Fees** | **None** | Gas fees | 2.9% + $0.30 |
 | **TPS** | **Millions** | ~50,000 | ~65,000 |
 | **Integration** | **1 line** | Multiple steps | Complex |
-| **Revenue Share** | **90% to you** | Variable | ~97% to you |
+| **Revenue Share** | **Configurable (100% to you by default)** | Variable | ~97% to you |
 | **EIP-3009** | **Not needed** | Required | N/A |
 
 ## 📚 API Reference
 
 ### Middleware Options
 
-- `payTo` (string, required): Your wallet address (receives 90%)
+- `payTo` (string, required): Your wallet address (receives settlement)
 - `rpcUrl` (string): Splendor RPC endpoint (default: 'http://localhost:80')
 - `network` (string): Network name (default: 'splendor')
-- `chainId` (number): Chain ID (default: 6546)
+- `chainId` (number): Chain ID (default: 2691)
 - `pricing` (object): Path-to-price mapping
-- `defaultPrice` (string): Default price in USD (default: '0.001')
+- `defaultPrice` (string): Optional fallback price you configure for unlisted routes (no built-in default)
 
 ### Request Object Extensions
 
@@ -349,10 +363,9 @@ After successful payment, requests include:
 ```javascript
 req.x402 = {
   paid: true,                    // Payment successful
-  amount: "0.001",              // Amount paid (USD)
+  amount: "0.0001",             // Amount paid (SPLD)
   txHash: "0x...",              // Transaction hash
-  payer: "0x...",               // Payer address
-  yourRevenue: "0.0009"         // Your 90% share
+  payer: "0x..."                // Payer address
 }
 ```
 
@@ -400,30 +413,30 @@ export NODE_ENV=production
 ```javascript
 app.use('/weather', splendorX402Express({
   payTo: '0xWeatherCompanyWallet',
-  pricing: { '/weather/*': '0.001' }  // $0.001 per weather request
+  pricing: { '/weather/*': '0.0001' }  // 0.0001 SPLD per weather request
 }));
 
-// Revenue: 1000 requests/day = $0.90/day = $27/month
+// Revenue: 1000 requests/day = 0.1 SPLD/day (~3 SPLD/month)
 ```
 
 ### **AI Image Generator**
 ```javascript
 app.use('/generate', splendorX402Express({
   payTo: '0xAICompanyWallet',
-  pricing: { '/generate/image': '0.05' }  // $0.05 per image
+  pricing: { '/generate/image': '0.05' }  // 0.05 SPLD per image
 }));
 
-// Revenue: 100 images/day = $4.50/day = $135/month
+// Revenue: 100 images/day = 5 SPLD/day
 ```
 
 ### **Data Analytics Platform**
 ```javascript
 app.use('/analytics', splendorX402Express({
   payTo: '0xAnalyticsCompanyWallet',
-  pricing: { '/analytics/report': '0.10' }  // $0.10 per report
+  pricing: { '/analytics/report': '0.10' }  // 0.10 SPLD per report
 }));
 
-// Revenue: 50 reports/day = $4.50/day = $135/month
+// Revenue: 50 reports/day = 5 SPLD/day
 ```
 
 ## 🤖 No EIP-3009 Complexity!
@@ -457,21 +470,26 @@ const signature = await wallet.signMessage(message);
 
 ### **Monitor Your Earnings**
 ```bash
-# Check your wallet balance (your 90% share)
+# Check your wallet balance (settled payments)
 curl -X POST -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["0xYourWalletAddress","latest"],"id":1}' \
   http://splendor-rpc:80
 
-# Get x402 payment statistics
+# Get x402 payment statistics (tracked validator share)
 curl -X POST -H "Content-Type: application/json" \
-  --data '{"jsonrpc":"2.0","method":"x402_getRevenueStats","params":[],"id":1}' \
+  --data '{"jsonrpc":"2.0","method":"x402_getX402RevenueStats","params":[],"id":1}' \
+  http://splendor-rpc:80
+
+# Check validator-specific rewards
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"x402_getValidatorX402Revenue","params":["0xValidator"],"id":1}' \
   http://splendor-rpc:80
 ```
 
 ## 🎯 Use Cases
 
 ### **API Monetization**
-- **Weather APIs**: $0.001 per request
+- **Weather APIs**: 0.0001 SPLD per request
 - **Stock Data**: $0.01 per quote
 - **News Articles**: $0.005 per article
 - **Maps/Directions**: $0.002 per route
@@ -480,37 +498,37 @@ curl -X POST -H "Content-Type: application/json" \
 - **Image Generation**: $0.05 per image
 - **Text Generation**: $0.01 per request
 - **Voice Synthesis**: $0.02 per audio file
-- **Translation**: $0.001 per word
+- **Translation**: 0.0001 SPLD per word
 
 ### **Data Services**
-- **Analytics Reports**: $0.10 per report
-- **Database Queries**: $0.001 per query
-- **File Storage**: $0.001 per MB
-- **CDN Access**: $0.0001 per file
+- **Analytics Reports**: 0.10 SPLD per report
+- **Database Queries**: 0.0001 SPLD per query
+- **File Storage**: 0.0001 SPLD per MB
+- **CDN Access**: 0.0001 SPLD per file
 
 ### **Content & Media**
-- **Premium Articles**: $0.01 per article
-- **Video Streaming**: $0.05 per hour
-- **Music Streaming**: $0.001 per song
-- **E-books**: $0.50 per book
+- **Premium Articles**: 0.01 SPLD per article
+- **Video Streaming**: 0.05 SPLD per hour
+- **Music Streaming**: 0.0001 SPLD per song
+- **E-books**: 0.50 SPLD per book
 
 ## ⚙️ Configuration Options
 
 ```javascript
 const middleware = splendorX402Express({
   // Required
-  payTo: '0xYourWalletAddress',        // Where YOUR 90% goes
+  payTo: '0xYourWalletAddress',        // Where your settlement goes
   
   // Optional
   rpcUrl: 'http://localhost:80',       // Splendor RPC endpoint
   network: 'splendor',                 // Network name
-  chainId: 6546,                       // Splendor chain ID
-  defaultPrice: '0.001',               // Default price in USD
+  chainId: 2691,                       // Splendor chain ID
+  defaultPrice: '0.005',               // Optional fallback you configure (example only)
   
   // Pricing rules (flexible patterns)
   pricing: {
     '/api/free': '0',                  // Free endpoint
-    '/api/premium': '0.001',           // Fixed price
+    '/api/premium': '0.0001',          // Developer-chosen price at the network minimum
     '/api/data/*': '0.01',             // Wildcard pattern
     '/api/analytics': '0.05',          // Higher value content
     '/api/bulk/*': '0.0001'            // Bulk pricing
@@ -555,14 +573,14 @@ curl http://localhost:3000/health
 ## 🌟 Why Choose Splendor x402?
 
 ### **For Developers:**
-- **90% revenue share** (you keep most of the money)
+- **Configurable validator share** (100% settlement by default)
 - **1-line integration** (add payments instantly)
 - **No crypto complexity** (HTTP-native)
 - **Instant settlement** (no waiting for confirmations)
 - **No gas fees** for users (better user experience)
 
 ### **For Users:**
-- **Tiny payments** ($0.001 minimum)
+- **Tiny payments** (0.0001 SPLD minimum)
 - **No gas fees** (just pay for the service)
 - **Instant access** (no waiting)
 - **Simple signing** (no EIP-3009 complexity)
@@ -572,9 +590,9 @@ curl http://localhost:3000/health
 
 | Feature | **Splendor x402** | Standard x402 | Credit Cards |
 |---------|------------------|---------------|--------------|
-| **Your Revenue** | **90%** | Variable | ~97% |
+| **Your Revenue** | **Configurable (100% default)** | Variable | ~97% |
 | **Settlement** | **Instant** | 2+ seconds | 2-3 days |
-| **Minimum** | **$0.001** | $0.001 | $0.50+ |
+| **Minimum** | **0.0001 SPLD (~$0.000038)** | $0.001 | $0.50+ |
 | **User Fees** | **None** | Gas fees | None |
 | **Integration** | **1 line** | Multiple steps | Complex |
 | **Crypto Knowledge** | **None needed** | EIP-3009 required | None |
@@ -583,12 +601,25 @@ curl http://localhost:3000/health
 
 ### Middleware Options
 
-- `payTo` (string, required): Your wallet address (receives 90%)
+- `payTo` (string, required): Your wallet address (receives settlement)
 - `rpcUrl` (string): Splendor RPC endpoint
 - `network` (string): Network name (default: 'splendor')
-- `chainId` (number): Chain ID (default: 6546)
+- `chainId` (number): Chain ID (default: 2691)
 - `pricing` (object): Path-to-price mapping
-- `defaultPrice` (string): Default price in USD
+- `defaultPrice` (string): Optional fallback price you configure for unlisted routes (no built-in default)
+
+### Native x402 RPC Endpoints
+
+| Method | Purpose |
+|--------|---------|
+| `x402_supported()` | Discover supported schemes/networks. |
+| `x402_verify(requirements, payload)` | Validate an envelope without settlement. |
+| `x402_settle(requirements, payload)` | Submit a typed `0x50` settlement transaction. |
+| `x402_getValidatorX402Revenue(address)` | Inspect tracked rewards for a validator. |
+| `x402_getX402RevenueStats()` | View aggregated validator reward statistics. |
+| `x402_getTopPerformingValidators(limit)` | List validators by AI-enhanced performance score. |
+| `x402_setValidatorFeeShare(percentage)` | Adjust validator reward percentage (default 0%; opt-in). |
+| `x402_setDistributionMode(mode)` | Switch reward distribution mode (`performance`, `equal`, `proportional`). |
 
 ### Request Object Extensions
 
@@ -596,12 +627,9 @@ After successful payment:
 ```javascript
 req.x402 = {
   paid: true,                    // Payment successful
-  amount: "0.001",              // Amount paid (USD)
+  amount: "0.0001",             // Amount paid (SPLD)
   txHash: "0x...",              // Transaction hash
-  payer: "0x...",               // Payer address
-  yourRevenue: "0.0009",        // Your 90% share
-  validatorRevenue: "0.00005",  // Validator 5% share
-  protocolRevenue: "0.00005"    // Protocol 5% share
+  payer: "0x..."               // Payer address
 }
 ```
 
@@ -640,7 +668,7 @@ export NODE_ENV=production
 
 **With Splendor x402, you can:**
 - ✅ **Add payments to any API** in 1 line of code
-- ✅ **Keep 90% of all revenue** (best rate in crypto)
+- ✅ **Configurable validator share** with 100% settlement by default
 - ✅ **No gas fees** for your users (better experience)
 - ✅ **Instant settlement** (millions of TPS)
 - ✅ **No EIP-3009 complexity** (simple message signing)

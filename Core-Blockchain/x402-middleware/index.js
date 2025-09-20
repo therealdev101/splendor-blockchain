@@ -12,9 +12,11 @@ class SplendorX402Middleware {
     this.facilitatorUrl = options.facilitatorUrl || this.rpcUrl;
     this.payTo = options.payTo;
     this.pricing = options.pricing || {};
-    this.defaultPrice = options.defaultPrice || '0.001';
+    this.defaultPrice = Object.prototype.hasOwnProperty.call(options, 'defaultPrice')
+      ? options.defaultPrice
+      : null;
     this.network = options.network || 'splendor';
-    this.chainId = options.chainId || 6546;
+    this.chainId = options.chainId || 2691;
     
     if (!this.payTo) {
       throw new Error('payTo address is required');
@@ -28,8 +30,15 @@ class SplendorX402Middleware {
     return async (req, res, next) => {
       try {
         const price = this.getPrice(req.path, localPricing);
-        
-        if (!price || price === '0') {
+
+        if (price === null || price === undefined) {
+          return res.status(500).json({
+            error: 'x402 price not configured for this resource',
+            details: 'Add a pricing rule for this path or supply defaultPrice when initializing the middleware.'
+          });
+        }
+
+        if (Number(price) === 0) {
           return next(); // Free endpoint
         }
 
@@ -84,8 +93,16 @@ class SplendorX402Middleware {
     
     fastify.addHook('preHandler', async (request, reply) => {
       const price = this.getPrice(request.url, localPricing);
-      
-      if (!price || price === '0') {
+
+      if (price === null || price === undefined) {
+        reply.code(500).send({
+          error: 'x402 price not configured for this resource',
+          details: 'Add a pricing rule for this path or supply defaultPrice when registering the plugin.'
+        });
+        return;
+      }
+
+      if (Number(price) === 0) {
         return; // Free endpoint
       }
 
@@ -142,7 +159,11 @@ class SplendorX402Middleware {
       }
     }
     
-    return this.defaultPrice;
+    if (this.defaultPrice !== null && this.defaultPrice !== undefined) {
+      return this.defaultPrice;
+    }
+
+    return null;
   }
 
   // Simple path matching (supports wildcards)
@@ -162,7 +183,7 @@ class SplendorX402Middleware {
       const requirements = {
         scheme: 'exact',
         network: this.network,
-        maxAmountRequired: this.dollarToWei(expectedAmount),
+        maxAmountRequired: this.spldToWei(expectedAmount),
         resource: 'api-access',
         description: 'API access payment',
         mimeType: 'application/json',
@@ -202,7 +223,7 @@ class SplendorX402Middleware {
       const requirements = {
         scheme: 'exact',
         network: this.network,
-        maxAmountRequired: this.dollarToWei(expectedAmount),
+        maxAmountRequired: this.spldToWei(expectedAmount),
         resource: 'api-access',
         description: 'API access payment',
         mimeType: 'application/json',
@@ -234,12 +255,19 @@ class SplendorX402Middleware {
     }
   }
 
-  // Convert dollar amount to wei (18 decimals)
-  dollarToWei(dollarAmount) {
-    const amount = parseFloat(dollarAmount);
-    // Assuming 1 SPLD = $0.38, so $0.001 = 0.00263 SPLD
-    const spldAmount = amount / 0.38;
-    const wei = Math.floor(spldAmount * 1e18);
+  // Convert SPLD amount (string/number) to wei (18 decimals)
+  spldToWei(amountInput) {
+    if (amountInput === null || amountInput === undefined) {
+      throw new Error('SPLD amount is required for conversion');
+    }
+
+    const amount = Number(amountInput);
+
+    if (Number.isNaN(amount)) {
+      throw new Error(`Invalid SPLD amount: ${amountInput}`);
+    }
+
+    const wei = Math.floor(amount * 1e18);
     return '0x' + wei.toString(16);
   }
 
@@ -250,7 +278,7 @@ class SplendorX402Middleware {
       accepts: [{
         scheme: 'exact',
         network: this.network,
-        maxAmountRequired: this.dollarToWei(price),
+        maxAmountRequired: this.spldToWei(price),
         resource: resource,
         description: `Payment required for ${resource}`,
         mimeType: 'application/json',
@@ -271,7 +299,7 @@ class SplendorX402Middleware {
       accepts: [{
         scheme: 'exact',
         network: this.network,
-        maxAmountRequired: this.dollarToWei(price),
+        maxAmountRequired: this.spldToWei(price),
         resource: resource,
         description: `Payment required for ${resource}`,
         mimeType: 'application/json',
