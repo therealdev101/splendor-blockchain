@@ -148,10 +148,20 @@ task6_x402(){
     # Make it executable
     chmod +x ./setup-x402-complete.sh
     
+    # Check if npm is available, if not install Node.js first
+    if ! command -v npm &> /dev/null; then
+      log_wait "Node.js/npm not found, installing via NVM"
+      install_nvm
+    fi
+    
     # Run only the middleware and configuration parts (skip the build)
     log_wait "Installing x402 middleware dependencies"
     cd x402-middleware
     if [ -f "package.json" ]; then
+      # Source NVM to ensure npm is available
+      export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      
       npm install --silent
       log_success "x402 middleware dependencies installed"
     fi
