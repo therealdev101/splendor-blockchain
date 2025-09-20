@@ -6,7 +6,19 @@ RED='\033[0;31m'
 ORANGE='\033[0;33m'
 NC='\033[0m' # No Color
 CYAN='\033[0;36m'
-BASE_DIR='/root/splendor-blockchain-v4'
+# Detect the actual base directory dynamically
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
+
+# If running as root, ensure we're using the correct path structure
+if [ "$EUID" -eq 0 ]; then
+    # Check if we're in the expected directory structure
+    if [[ "$BASE_DIR" != *"splendor-blockchain"* ]]; then
+        echo "Warning: Script not running from expected splendor-blockchain directory"
+        echo "Current BASE_DIR: $BASE_DIR"
+        echo "Please ensure the project is in the correct location for server deployment"
+    fi
+fi
 
 # Flag: skip validator account setup (task8)
 NOPK=false
