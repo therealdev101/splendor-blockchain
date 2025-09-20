@@ -13,8 +13,8 @@ async function testMainnet() {
         const network = await provider.getNetwork();
         console.log(`   ✅ Connected to network with Chain ID: ${network.chainId}`);
         
-        if (network.chainId !== 2691n) {
-            throw new Error(`Expected Chain ID 2691, got ${network.chainId}`);
+        if (network.chainId !== 6546n) {
+            throw new Error(`Expected Chain ID 6546, got ${network.chainId}`);
         }
 
         // Test 2: Check block number
@@ -63,8 +63,8 @@ async function testMainnet() {
 
         console.log('\n🎉 All tests passed! Splendor Mainnet is working correctly.');
         console.log('\n📋 Mainnet Information:');
-        console.log(`   • Network ID: 2691`);
-        console.log(`   • Chain ID: 2691`);
+        console.log(`   • Network ID: 6546`);
+        console.log(`   • Chain ID: 6546`);
         console.log(`   • RPC URL: https://mainnet-rpc.splendor.org/`);
         console.log(`   • Block Explorer: https://explorer.splendor.org/`);
         console.log(`   • Currency Symbol: SPLD`);
